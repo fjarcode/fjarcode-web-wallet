@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+
+{% block title %}Recover Wallet · FJARCODE{% endblock %}
+{% block description %}Recover FJAR wallet from seed phrase{% endblock %}
+
+{% block content %}
+  <section class="wrap">
+    <section class="card panel">
+      <h1>{{ labels.recover }}</h1>
+
+      <form method="post" class="form-stack">
+        {% csrf_token %}
+        <label class="field-label" for="seed_phrase">{{ labels.seed_phrase }}</label>
+        <textarea id="seed_phrase" name="seed_phrase" class="field-input seed-input" rows="4" placeholder="twelve or twenty-four words">{{ seed_phrase }}</textarea>
+        <label class="field-label" for="wallet_password">{{ labels.wallet_password }}</label>
+        <div class="input-with-action password-input-wrap">
+          <input id="wallet_password" name="wallet_password" class="field-input" type="password" minlength="6" required value="{{ wallet_password|default:'' }}">
+          <button
+            type="button"
+            class="input-action-btn password-toggle-btn"
+            data-password-toggle
+            data-password-target="#wallet_password"
+            data-label-show="{% if request.GET.lang == 'is' %}Sýna lykilorð{% else %}Show password{% endif %}"
+            data-label-hide="{% if request.GET.lang == 'is' %}Fela lykilorð{% else %}Hide password{% endif %}"
+            aria-label="{% if request.GET.lang == 'is' %}Sýna lykilorð{% else %}Show password{% endif %}"
+            title="{% if request.GET.lang == 'is' %}Sýna/fela lykilorð{% else %}Show/hide password{% endif %}"
+          >
+            <svg class="password-eye" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="M1 12C3.2 7.8 7.2 5 12 5s8.8 2.8 11 7c-2.2 4.2-6.2 7-11 7S3.2 16.2 1 12Z"></path>
+              <circle cx="12" cy="12" r="3"></circle>
+            </svg>
+            <span class="password-eye-slash" aria-hidden="true"></span>
+          </button>
+        </div>
+        <label class="checkline" for="enable_passkey">
+          <input id="enable_passkey" type="checkbox" name="enable_passkey" value="1">
+          {% if request.GET.lang == 'is' %}
+            Virkja Face ID/Touch ID á þessu tæki eftir endurheimt
+          {% else %}
+            Enable Face ID/Touch ID on this device after recovery
+          {% endif %}
+        </label>
+        <p class="note">{{ labels.wallet_password_hint }}</p>
+        <button type="submit" class="btn btn-primary">{{ labels.recover }}</button>
+      </form>
+
+      {% if error %}
+        <div class="result-box err-box">{{ error }}</div>
+      {% endif %}
+
+      {% if recovered %}
+        <div class="result-box ok-box">
+          <p class="result-title">{{ labels.recovered }}</p>
+        </div>
+      {% endif %}
+      <div class="actions single">
+        <a class="btn btn-ghost" href="/?lang={{ lang }}">{{ labels.back }}</a>
+      </div>
+    </section>
+  </section>
+{% endblock %}

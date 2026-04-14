@@ -1,0 +1,141 @@
+{% load static %}
+<!doctype html>
+<html lang="{% if request.GET.lang == 'is' %}is{% else %}en{% endif %}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="FJAR Wallet">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#0b0b0b">
+  <title>{% block title %}FJARCODE Wallet{% endblock %}</title>
+  <meta name="description" content="{% block description %}FJARCODE non-custodial web wallet{% endblock %}">
+  <link rel="icon" type="image/png" href="{% static 'img/fjarcode.png' %}">
+  <link rel="shortcut icon" type="image/png" href="{% static 'img/fjarcode.png' %}">
+  <link rel="apple-touch-icon" href="{% static 'img/fjarcode.png' %}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/base.css' %}">
+  <link rel="stylesheet" href="{% static 'css/main.css' %}">
+  {% block extra_head %}{% endblock %}
+</head>
+<body{% if has_active_wallet %} class="has-wallet-nav"{% endif %}>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="topbar-brand" href="/wallet/?lang={% if request.GET.lang == 'is' %}is{% else %}en{% endif %}">
+        <img class="topbar-logo" src="{% static 'img/fjarcode.png' %}" alt="FJARCODE logo">
+        <span class="brand-main">FJARCODE</span>
+        <span class="brand-sub">Wallet</span>
+      </a>
+      <div class="topbar-right">
+        {% if has_active_wallet %}
+          <span class="topbar-conn">
+            <span class="topbar-conn-label">Electrum:</span>
+            <span class="topbar-conn-state {% if topbar_electrum_connected %}is-connected{% else %}is-disconnected{% endif %}">
+              {% if topbar_electrum_connected %}{{ labels.topbar_connected }}{% else %}{{ labels.topbar_disconnected }}{% endif %}
+            </span>
+            <span class="topbar-conn-dot" aria-hidden="true"></span>
+          </span>
+        {% endif %}
+        {% if has_active_wallet %}
+          <button class="top-link nav-toggle" type="button" aria-label="Open menu" aria-controls="side-nav" aria-expanded="false" data-nav-toggle>
+            <span class="nav-toggle-lines" aria-hidden="true"></span>
+            <span class="sr-only">Menu</span>
+          </button>
+        {% endif %}
+        <details class="lang-menu" data-lang-menu>
+          <summary class="lang-trigger" aria-label="Language selector">
+            <span class="lang-flag" aria-hidden="true">{% if request.GET.lang == 'is' %}🇮🇸{% else %}🇬🇧{% endif %}</span>
+            <span class="lang-text">{% if request.GET.lang == 'is' %}Íslenska{% else %}English{% endif %}</span>
+            <span class="lang-caret" aria-hidden="true">▾</span>
+          </summary>
+          <div class="lang-dropdown" role="menu" aria-label="Language options">
+            <a class="lang-option {% if request.GET.lang == 'is' %}is-active{% endif %}" href="{{ request.path }}?lang=is" role="menuitem" aria-label="Skipta yfir á íslensku">
+              <span class="lang-option-flag" aria-hidden="true">🇮🇸</span>
+              <span class="lang-option-label">Íslenska</span>
+            </a>
+            <a class="lang-option {% if request.GET.lang != 'is' %}is-active{% endif %}" href="{{ request.path }}?lang=en" role="menuitem" aria-label="Switch to English">
+              <span class="lang-option-flag" aria-hidden="true">🇬🇧</span>
+              <span class="lang-option-label">English</span>
+            </a>
+          </div>
+        </details>
+      </div>
+    </div>
+  </header>
+
+  {% if has_active_wallet %}
+    <div class="side-overlay" data-side-overlay></div>
+    <aside class="side-nav" id="side-nav" aria-label="Primary navigation sidebar">
+      <nav class="side-scroll">
+        <div class="side-group" aria-label="Wallet links">
+          <div class="side-balance" aria-label="Wallet balance">
+            <div class="side-balance-label">{{ labels.side_balance }}</div>
+            <div class="side-balance-value">{% if balance_total_fjar %}{{ balance_total_fjar }} FJAR{% else %}--{% endif %}</div>
+          </div>
+          <div class="side-section-title">{{ labels.side_wallet_section }}</div>
+          <a class="side-link {% if active_nav == 'wallet' %}active{% endif %}" href="/wallet/?lang={% if request.GET.lang == 'is' %}is{% else %}en{% endif %}&tab=wallet">{{ labels.wallet }}</a>
+          <a class="side-link {% if active_nav == 'send' %}active{% endif %}" href="/wallet/?lang={% if request.GET.lang == 'is' %}is{% else %}en{% endif %}&tab=send">{{ labels.send }}</a>
+          <a class="side-link {% if active_nav == 'receive' %}active{% endif %}" href="/wallet/?lang={% if request.GET.lang == 'is' %}is{% else %}en{% endif %}&tab=receive">{{ labels.receive }}</a>
+          <a class="side-link {% if active_nav == 'transactions' %}active{% endif %}" href="/wallet/?lang={% if request.GET.lang == 'is' %}is{% else %}en{% endif %}&tab=transactions">{{ labels.tx }}</a>
+          <a class="side-link {% if active_nav == 'addresses' %}active{% endif %}" href="/wallet/?lang={% if request.GET.lang == 'is' %}is{% else %}en{% endif %}&tab=addresses">{{ labels.addresses }}</a>
+          <a class="side-link {% if active_nav == 'settings' %}active{% endif %}" href="/settings/?lang={% if request.GET.lang == 'is' %}is{% else %}en{% endif %}">{{ labels.settings }}</a>
+          <a class="side-link {% if active_nav == 'status' %}active{% endif %}" href="/status/?lang={% if request.GET.lang == 'is' %}is{% else %}en{% endif %}">{{ labels.status }}</a>
+        </div>
+
+        <div class="side-group" aria-label="Session actions">
+          <div class="side-section-title">{{ labels.side_session_section }}</div>
+          <form method="post" action="/logout/?lang={% if request.GET.lang == 'is' %}is{% else %}en{% endif %}" class="side-inline-form">
+            {% csrf_token %}
+            <button type="submit" class="side-link side-button">
+              {{ labels.logout }}
+            </button>
+          </form>
+          <button type="button" class="side-link side-button" data-disconnect-trigger>
+            {{ labels.disconnect }}
+          </button>
+        </div>
+      </nav>
+    </aside>
+  {% endif %}
+
+  <main>
+    {% block content %}{% endblock %}
+    <footer class="site-footer">
+      <span class="footer-line footer-line-main">FJARCODE Wallet · v1.1.0</span>
+      <span class="footer-line footer-line-meta">&copy; {% now "Y" %} · <a class="footer-link" href="https://github.com/fjarcode/fjarcode-web-wallet" target="_blank" rel="noopener noreferrer">Open Source</a></span>
+    </footer>
+  </main>
+
+  {% if has_active_wallet %}
+    <div class="confirm-modal" data-disconnect-modal hidden>
+      <div class="confirm-modal__backdrop" data-disconnect-cancel></div>
+      <section class="confirm-modal__card" role="dialog" aria-modal="true" aria-labelledby="disconnect-modal-title">
+        <h2 id="disconnect-modal-title" class="confirm-modal__title">
+          {% if request.GET.lang == 'is' %}Aftengja veski?{% else %}Disconnect wallet?{% endif %}
+        </h2>
+        <p class="confirm-modal__text">
+          {% if request.GET.lang == 'is' %}
+            Ertu viss um að þú viljir aftengja veskið? Þú þarft seed frasann til að tengjast aftur.
+          {% else %}
+            Are you sure you want to disconnect wallet? You will need your seed phrase to connect again.
+          {% endif %}
+        </p>
+        <form method="post" action="/disconnect/?lang={% if request.GET.lang == 'is' %}is{% else %}en{% endif %}" class="confirm-modal__actions">
+          {% csrf_token %}
+          <button type="button" class="top-link confirm-modal__btn" data-disconnect-cancel>
+            {% if request.GET.lang == 'is' %}Hætta við{% else %}Cancel{% endif %}
+          </button>
+          <button type="submit" class="top-link top-logout confirm-modal__btn is-danger">
+            {% if request.GET.lang == 'is' %}Aftengja{% else %}Disconnect{% endif %}
+          </button>
+        </form>
+      </section>
+    </div>
+  {% endif %}
+
+  <script src="{% static 'js/base.js' %}"></script>
+</body>
+</html>

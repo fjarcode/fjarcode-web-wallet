@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ labels.unlock_title }} · FJARCODE{% endblock %}
+{% block description %}Unlock wallet session{% endblock %}
+
+{% block content %}
+  <section class="wrap">
+    <section class="card panel">
+      <h1>{{ labels.unlock_title }}</h1>
+
+      <form method="post" class="form-stack">
+        {% csrf_token %}
+        <label class="field-label" for="wallet_password">{{ labels.unlock_password }}</label>
+        <input id="wallet_password" name="wallet_password" class="field-input" type="password" minlength="6" required>
+        <button type="submit" class="btn btn-primary">{{ labels.unlock_button }}</button>
+      </form>
+
+      {% if has_passkeys %}
+        <div class="actions single passkey-box">
+          <button
+            type="button"
+            class="btn btn-ghost"
+            data-passkey-auth
+            data-passkey-begin-url="/passkey/auth/begin/?lang={{ lang }}"
+            data-passkey-finish-url="/passkey/auth/finish/?lang={{ lang }}"
+            data-next-target="{{ next_target }}"
+            data-next-tab="{{ tab }}"
+          >
+            {% if request.GET.lang == 'is' %}Opna með Face ID / Touch ID{% else %}Unlock with Face ID / Touch ID{% endif %}
+          </button>
+          <p class="note" data-passkey-auth-status></p>
+        </div>
+      {% endif %}
+
+      {% if error %}
+        <div class="result-box err-box">{{ error }}</div>
+        <p class="note">{{ labels.unlock_forgot_hint }}</p>
+      {% endif %}
+
+      <p class="reset-inline-note">
+        <a href="{{ reset_confirm_open_url }}" class="reset-inline-link">{{ labels.unlock_reset_cta }}</a>
+      </p>
+
+      {% if show_reset_confirm %}
+      <div class="confirm-modal">
+        <a href="{{ reset_confirm_close_url }}" class="confirm-modal__backdrop" aria-label="Close confirmation modal"></a>
+        <section class="confirm-modal__card" role="dialog" aria-modal="true" aria-labelledby="reset-modal-title">
+          <h2 id="reset-modal-title" class="confirm-modal__title">{{ labels.unlock_reset_title }}</h2>
+          <p class="confirm-modal__text">{{ labels.unlock_reset_confirm }}</p>
+          <div class="confirm-modal__actions">
+            <a href="{{ reset_confirm_close_url }}" class="top-link confirm-modal__btn">{{ labels.send_cancel }}</a>
+            <form method="post" action="/disconnect/?lang={{ lang }}">
+              {% csrf_token %}
+              <button type="submit" class="top-link top-logout confirm-modal__btn is-danger">{{ labels.unlock_reset_cta }}</button>
+            </form>
+          </div>
+        </section>
+      </div>
+      {% endif %}
+    </section>
+  </section>
+{% endblock %}

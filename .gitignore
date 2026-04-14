@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Virtual environments
+.venv/
+venv/
+
+# Django/local runtime
+db.sqlite3
+staticfiles/
+media/
+
+# Environment and secrets
+.env
+.env.local
+
+# Caches and logs
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.runtime_cache/
+*.log
+
+# Editors/OS
+.DS_Store
+.idea/
+.vscode/

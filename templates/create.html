@@ -1,0 +1,102 @@
+{% extends 'base.html' %}
+
+{% block title %}Create Wallet · FJARCODE{% endblock %}
+{% block description %}Create a new FJAR wallet seed phrase{% endblock %}
+
+{% block content %}
+  <section class="wrap">
+    <section class="card panel">
+      <h1>{{ labels.create }}</h1>
+
+      {% if not created %}
+        <form method="post" class="form-stack">
+          {% csrf_token %}
+          <div class="field-group seed-length-group">
+            <span class="field-label">{{ labels.seed_words }}</span>
+            <div class="seed-options" role="radiogroup" aria-label="{{ labels.seed_words }}">
+              <label class="seed-option {% if seed_words == '12' %}is-active{% endif %}">
+                <input class="seed-radio" type="radio" name="seed_words" value="12" {% if seed_words == '12' %}checked{% endif %}>
+                <span class="seed-title">{{ labels.seed_words_12 }}</span>
+              </label>
+              <label class="seed-option {% if seed_words == '24' %}is-active{% endif %}">
+                <input class="seed-radio" type="radio" name="seed_words" value="24" {% if seed_words == '24' %}checked{% endif %}>
+                <span class="seed-title">{{ labels.seed_words_24 }}</span>
+              </label>
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary">{{ labels.create }}</button>
+        </form>
+      {% endif %}
+
+      {% if created %}
+        <form method="post" class="form-stack seed-length-form">
+          {% csrf_token %}
+          <div class="field-group seed-length-group">
+            <span class="field-label">{{ labels.seed_words }}</span>
+            <div class="seed-options" role="radiogroup" aria-label="{{ labels.seed_words }}">
+              <label class="seed-option {% if seed_words == '12' %}is-active{% endif %}">
+                <input class="seed-radio" type="radio" name="seed_words" value="12" {% if seed_words == '12' %}checked{% endif %} onclick="this.form.submit()">
+                <span class="seed-title">{{ labels.seed_words_12 }}</span>
+              </label>
+              <label class="seed-option {% if seed_words == '24' %}is-active{% endif %}">
+                <input class="seed-radio" type="radio" name="seed_words" value="24" {% if seed_words == '24' %}checked{% endif %} onclick="this.form.submit()">
+                <span class="seed-title">{{ labels.seed_words_24 }}</span>
+              </label>
+            </div>
+          </div>
+        </form>
+
+        <div class="result-box ok-box">
+          <p class="field-label">{{ labels.seed_phrase }}</p>
+          <p class="seed-box">{{ seed_phrase }}</p>
+          <p class="note">{{ labels.created }}</p>
+        </div>
+
+        {% if confirm_error %}
+          <div class="result-box err-box">{{ confirm_error }}</div>
+        {% endif %}
+
+        <form method="post" action="{{ continue_url }}" class="form-stack">
+          {% csrf_token %}
+          <input type="hidden" name="seed_action" value="{% if seed_step_ack %}continue{% else %}ack{% endif %}">
+          {% if seed_step_ack %}
+            <label class="field-label" for="wallet_password">{{ labels.wallet_password }}</label>
+            <div class="input-with-action password-input-wrap">
+              <input id="wallet_password" name="wallet_password" class="field-input" type="password" minlength="6" required value="{{ wallet_password|default:'' }}">
+              <button
+                type="button"
+                class="input-action-btn password-toggle-btn"
+                data-password-toggle
+                data-password-target="#wallet_password"
+                data-label-show="{% if request.GET.lang == 'is' %}Sýna lykilorð{% else %}Show password{% endif %}"
+                data-label-hide="{% if request.GET.lang == 'is' %}Fela lykilorð{% else %}Hide password{% endif %}"
+                aria-label="{% if request.GET.lang == 'is' %}Sýna lykilorð{% else %}Show password{% endif %}"
+                title="{% if request.GET.lang == 'is' %}Sýna/fela lykilorð{% else %}Show/hide password{% endif %}"
+              >
+                <svg class="password-eye" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <path d="M1 12C3.2 7.8 7.2 5 12 5s8.8 2.8 11 7c-2.2 4.2-6.2 7-11 7S3.2 16.2 1 12Z"></path>
+                  <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+                <span class="password-eye-slash" aria-hidden="true"></span>
+              </button>
+            </div>
+            <label class="checkline" for="enable_passkey">
+              <input id="enable_passkey" type="checkbox" name="enable_passkey" value="1">
+              {% if request.GET.lang == 'is' %}
+                Virkja Face ID/Touch ID á þessu tæki eftir uppsetningu
+              {% else %}
+                Enable Face ID/Touch ID on this device after setup
+              {% endif %}
+            </label>
+            <p class="note">{{ labels.wallet_password_hint }}</p>
+          {% endif %}
+          <button type="submit" class="btn btn-primary">{% if seed_step_ack %}Continue{% else %}{{ labels.seed_confirm_button }}{% endif %}</button>
+        </form>
+      {% endif %}
+
+      <div class="actions single">
+        <a class="btn btn-ghost" href="/?lang={{ lang }}">{{ labels.back }}</a>
+      </div>
+    </section>
+  </section>
+{% endblock %}

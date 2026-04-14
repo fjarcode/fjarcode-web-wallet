@@ -1,0 +1,11 @@
+[Unit]
+Description=Run ElectrumX certbot renewal twice daily
+
+[Timer]
+OnCalendar=*-*-* 03,15:00:00
+RandomizedDelaySec=20m
+Persistent=true
+Unit=electrumx-cert-renew.service
+
+[Install]
+WantedBy=timers.target

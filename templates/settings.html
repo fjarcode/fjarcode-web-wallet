@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ labels.settings }} · FJARCODE{% endblock %}
+{% block description %}Wallet security settings{% endblock %}
+
+{% block content %}
+  <section class="panel-shell card panel">
+    <h1>{{ labels.settings }}</h1>
+
+    <div class="result-box passkey-box">
+      <p class="result-title">
+        {% if request.GET.lang == 'is' %}Face ID / Touch ID (Passkey){% else %}Face ID / Touch ID (Passkey){% endif %}
+      </p>
+
+      {% if has_passkeys %}
+        <p class="note">
+          {% if request.GET.lang == 'is' %}
+            Passkey er virkt á þessu tæki. Skráð lyklafjöldi: {{ passkey_count }}.
+          {% else %}
+            Passkey is enabled for this wallet. Registered credentials: {{ passkey_count }}.
+          {% endif %}
+        </p>
+      {% else %}
+        <p class="note">
+          {% if request.GET.lang == 'is' %}
+            Virkjaðu passkey til að opna veskið með Face ID eða Touch ID.
+          {% else %}
+            Enable a passkey to unlock this wallet with Face ID or Touch ID.
+          {% endif %}
+        </p>
+      {% endif %}
+
+      {% if setup_passkey and not has_passkeys %}
+        <p class="note">
+          {% if request.GET.lang == 'is' %}
+            Veldu "Virkja núna" til að klára uppsetningu sem þú hakaðir við.
+          {% else %}
+            Click "Enable now" to finish the setup you opted into.
+          {% endif %}
+        </p>
+      {% endif %}
+
+      <div class="actions single">
+        <button
+          type="button"
+          class="btn btn-ghost"
+          data-passkey-register
+          data-passkey-begin-url="/passkey/register/begin/?lang={{ lang }}"
+          data-passkey-finish-url="/passkey/register/finish/?lang={{ lang }}"
+        >
+          {% if has_passkeys %}
+            {% if request.GET.lang == 'is' %}Skrá nýtt passkey{% else %}Register another passkey{% endif %}
+          {% else %}
+            {% if request.GET.lang == 'is' %}Virkja núna{% else %}Enable now{% endif %}
+          {% endif %}
+        </button>
+      </div>
+
+      <p class="note" data-passkey-register-status></p>
+    </div>
+  </section>
+{% endblock %}

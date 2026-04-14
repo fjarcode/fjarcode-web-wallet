@@ -1,0 +1,322 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ labels.wallet }} · FJARCODE{% endblock %}
+{% block description %}FJAR wallet dashboard{% endblock %}
+
+{% block content %}
+  <section class="panel-shell card panel">
+      {% if error %}
+        <div class="result-box err-box">{{ error }}</div>
+      {% else %}
+        {% if tab == 'wallet' and send_success %}
+          <div class="wallet-toast" role="status" aria-live="polite">{{ send_success }}</div>
+        {% endif %}
+        {% if tab == 'wallet' %}
+          <h1>{{ labels.wallet }}</h1>
+          <p class="sub">{{ labels.wallet_overview_sub }}</p>
+
+          <div class="balance-box result-box send-balance wallet-overview-balance" data-live-balance-box>
+            <p class="result-title">{{ labels.balance }}</p>
+            <p class="balance-value">{{ balance_total_fjar }} FJAR</p>
+            <div class="send-balance-meta-row">
+              <p class="note send-balance-note send-balance-note-total" title="{{ labels.balance_total_wallet_tooltip }}">{{ labels.balance_total_wallet_short }}: {{ balance_total_wallet_fjar }} FJAR</p>
+              {% if has_immature_balance %}
+                <p class="note note-immature send-balance-note send-balance-note-immature">Immature: {{ balance_immature_fjar }} FJAR</p>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="wallet-quick-actions">
+            <a class="btn btn-primary" href="/wallet/?lang={{ lang }}&tab=send">{{ labels.send }}</a>
+            <a class="btn btn-ghost" href="/wallet/?lang={{ lang }}&tab=receive">{{ labels.receive }}</a>
+          </div>
+
+          <div data-live-wallet-recent-wrap>
+            <div class="wallet-recent-head">
+              <h2 class="wallet-recent-title">{{ labels.wallet_recent_title }}</h2>
+              <a class="wallet-recent-link" href="/wallet/?lang={{ lang }}&tab=transactions">{{ labels.wallet_view_all_tx }}</a>
+            </div>
+
+            {% if tx_chain %}
+              <div class="address-list wallet-recent-list">
+              {% for tx in tx_chain|slice:":10" %}
+                <div class="address-row tx-row">
+                  {% if tx.direction == 'sent' %}
+                    <span class="tx-dir tx-dir-sent tx-dir-badge" aria-hidden="true">
+                      <svg class="tx-dir-icon" viewBox="0 0 24 24" focusable="false">
+                        <path d="M5 19L19 5M10 5h9v9"></path>
+                      </svg>
+                    </span>
+                  {% else %}
+                    <span class="tx-dir tx-dir-received tx-dir-badge" aria-hidden="true">
+                      <svg class="tx-dir-icon" viewBox="0 0 24 24" focusable="false">
+                        <path d="M19 5L5 19M5 10v9h9"></path>
+                      </svg>
+                    </span>
+                  {% endif %}
+                  <div class="tx-main">
+                    <span class="address-index">
+                      {{ tx.status }} · {% if tx.direction == 'sent' %}{{ labels.tx_sent }}{% else %}{{ labels.tx_received }}{% endif %}{% if tx.height > 0 %} · height <a class="tx-block-link" href="https://mempool.fjarcode.com/block/{{ tx.height }}" target="_blank" rel="noopener noreferrer">{{ tx.height }}</a>{% endif %}
+                      {% if tx.timestamp %} · {{ tx.timestamp|date:"d-m-Y H:i:s" }} UTC{% endif %}
+                    </span>
+                    <span class="address-value">
+                      {% if tx.direction == 'sent' %}
+                        {{ labels.tx_sent }}: {{ tx.sent_amount_fjar }} FJAR
+                      {% else %}
+                        {{ labels.tx_received }}: {{ tx.amount_fjar }} FJAR
+                      {% endif %}
+                      {% if tx.is_coinbase and tx.direction != 'sent' %}
+                        {% if tx.confirmations < coinbase_maturity_confirmations %}
+                          <span class="tx-immature"> · <span class="tx-block-found">BLOCK FOUND</span> · IMMATURE ({{ tx.confirmations }}/{{ coinbase_maturity_confirmations }})</span>
+                        {% else %}
+                          · <span class="tx-block-found">BLOCK FOUND</span>
+                        {% endif %}
+                      {% endif %}
+                    </span>
+                    <a class="address-value tx-hash" href="https://mempool.fjarcode.com/tx/{{ tx.tx_hash }}" target="_blank" rel="noopener noreferrer">{{ tx.tx_hash }}</a>
+                  </div>
+                </div>
+              {% endfor %}
+              </div>
+            {% elif tx_log %}
+              <div class="address-list wallet-recent-list">
+              {% for tx in tx_log|slice:":10" %}
+                <div class="address-row">
+                  <span class="address-index">{{ tx.timestamp }}</span>
+                  {% if tx.txid %}
+                    {% if tx.txid_source == 'electrum' %}
+                      <a class="address-value tx-hash" href="https://mempool.fjarcode.com/tx/{{ tx.txid }}" target="_blank" rel="noopener noreferrer">txid: {{ tx.txid }}</a>
+                    {% else %}
+                      <span class="address-value">txid: {{ tx.txid }} (local)</span>
+                    {% endif %}
+                  {% endif %}
+                  <span class="address-value">to: {{ tx.to }}</span>
+                  <span class="address-value">amount: {{ tx.amount }} FJAR · fee: {{ tx.fee|default:'0' }} FJAR ({{ tx.fee_label|default:tx.fee_level|default:'Medium' }}) · {{ tx.status }}</span>
+                </div>
+              {% endfor %}
+              </div>
+            {% else %}
+              <p class="sub">{{ labels.tx_none }}</p>
+            {% endif %}
+          </div>
+        {% elif tab == 'send' %}
+          <h1 class="send-title">{{ labels.send }}</h1>
+          <div class="balance-box result-box send-balance">
+            <p class="result-title">{{ labels.balance }}</p>
+            <p class="balance-value">{{ balance_total_fjar }} FJAR</p>
+            <div class="send-balance-meta-row">
+              <p class="note send-balance-note send-balance-note-total" title="{{ labels.balance_total_wallet_tooltip }}">{{ labels.balance_total_wallet_short }}: {{ balance_total_wallet_fjar }} FJAR</p>
+              {% if has_immature_balance %}
+                <p class="note note-immature send-balance-note send-balance-note-immature">Immature: {{ balance_immature_fjar }} FJAR</p>
+              {% endif %}
+            </div>
+          </div>
+
+          <form method="post" class="form-stack send-form">
+            {% csrf_token %}
+            <input type="hidden" name="send_action" value="prepare_send">
+            <div class="field-group">
+              <label class="field-label" for="source_address">{{ labels.source_address }}</label>
+              <select id="source_address" name="source_address" class="field-input" data-source-address-select>
+                <option value="">{{ labels.source_auto }}</option>
+                {% for opt in coin_control_options %}
+                  <option value="{{ opt.address }}" data-spendable-fjar="{{ opt.spendable_fjar }}" {% if selected_source_address == opt.address %}selected{% endif %}>#{{ opt.index }} · spendable {{ opt.spendable_fjar }} FJAR · {{ opt.address }}</option>
+                {% endfor %}
+              </select>
+              <p class="note fee-note">{{ labels.source_hint }}</p>
+            </div>
+            <div class="field-group">
+              <label class="field-label" for="to_address">{{ labels.to_address }}</label>
+              <input id="to_address" name="to_address" class="field-input" type="text" placeholder="fjarcode:..." value="{{ send_to_address|default:'' }}">
+            </div>
+            <div class="field-group">
+              <label class="field-label" for="amount">{{ labels.amount }} (FJAR)</label>
+              <div class="input-with-action" data-max-amount-wrap>
+                <input id="amount" name="amount" class="field-input" type="text" placeholder="0.01" value="{{ send_amount|default:'' }}" data-amount-input>
+                <button type="button" class="input-action-btn" data-max-amount-btn data-max-amount="{{ max_amount_fjar }}" data-max-amount-auto="{{ balance_confirmed_fjar }}">MAX</button>
+              </div>
+            </div>
+            <div class="field-group fee-group">
+              <span class="field-label">{{ labels.fee }}</span>
+              <div class="fee-options" role="radiogroup" aria-label="{{ labels.fee }}">
+                <label class="fee-option {% if fee_level == '1' %}is-active{% endif %}" data-fee-option data-fee-sats="{{ fee_sats_by_level.1 }}">
+                  <input class="fee-radio" type="radio" name="fee_level" value="1" {% if fee_level == '1' %}checked{% endif %}>
+                  <span class="fee-title">Low</span>
+                </label>
+                <label class="fee-option {% if fee_level == '2' %}is-active{% endif %}" data-fee-option data-fee-sats="{{ fee_sats_by_level.2 }}">
+                  <input class="fee-radio" type="radio" name="fee_level" value="2" {% if fee_level == '2' %}checked{% endif %}>
+                  <span class="fee-title">Medium (Auto)</span>
+                </label>
+                <label class="fee-option {% if fee_level == '3' %}is-active{% endif %}" data-fee-option data-fee-sats="{{ fee_sats_by_level.3 }}">
+                  <input class="fee-radio" type="radio" name="fee_level" value="3" {% if fee_level == '3' %}checked{% endif %}>
+                  <span class="fee-title">High</span>
+                </label>
+              </div>
+              <p class="note fee-note">{{ labels.fee_hint }}</p>
+              <p class="note fee-note">{{ labels.fee_estimated }}: <span data-fee-estimate>{{ fee_estimated_fjar }}</span> FJAR</p>
+            </div>
+            {% if not pending_send %}
+              <button type="submit" class="btn btn-primary">{{ labels.send_now }}</button>
+            {% endif %}
+          </form>
+
+          {% if pending_send %}
+            <div class="result-box confirm-send-box">
+              <p class="result-title">{{ labels.send_confirm_title }}</p>
+              <p class="address-value">to: {{ pending_send.to_display|default:pending_send.to }}</p>
+              {% if pending_send.from_address %}
+                <p class="address-value">from: {{ pending_send.from_address }}</p>
+              {% endif %}
+              <p class="address-value">amount: {{ pending_send.amount }} FJAR</p>
+              <p class="address-value">fee: {{ pending_send.fee }} FJAR ({{ pending_send.fee_label }})</p>
+              <div class="confirm-send-actions">
+                <form method="post">
+                  {% csrf_token %}
+                  <input type="hidden" name="send_action" value="confirm_send">
+                  <button type="submit" class="btn btn-primary">{{ labels.send_confirm_cta }}</button>
+                </form>
+                <form method="post">
+                  {% csrf_token %}
+                  <input type="hidden" name="send_action" value="cancel_send">
+                  <button type="submit" class="btn btn-ghost">{{ labels.send_cancel }}</button>
+                </form>
+              </div>
+            </div>
+          {% endif %}
+
+          {% if send_error %}
+            <div class="result-box err-box">{{ send_error }}</div>
+          {% endif %}
+          {% if send_success %}
+            <div class="result-box ok-box">{{ send_success }}</div>
+          {% endif %}
+          {% if send_debug_enabled and send_debug %}
+            <div class="result-box send-debug-box">
+              <p class="result-title">Send Debug</p>
+              {% for item in send_debug %}
+                <p class="send-debug-line">{{ item }}</p>
+              {% endfor %}
+            </div>
+          {% endif %}
+        {% elif tab == 'receive' %}
+          <h1>{{ labels.receive }}</h1>
+          {% if receive_address %}
+            <div class="result-box ok-box receive-qr-box copyable copy-block" data-copy-text="{{ receive_address }}" title="Click to copy address">
+              {% if receive_qr_data_uri %}
+                <img class="receive-qr-image" src="{{ receive_qr_data_uri }}" alt="Receive address QR code">
+              {% endif %}
+              <p class="receive-address-inline">{{ receive_address }}</p>
+            </div>
+          {% else %}
+            <p class="sub">No receive address available.</p>
+          {% endif %}
+        {% elif tab == 'transactions' %}
+          <h1>{{ labels.tx }}</h1>
+          <p class="note tx-summary-chip" title="{{ labels.balance_total_wallet_tooltip }}: {{ balance_total_wallet_fjar }} FJAR">Confirmed: {{ balance_confirmed_fjar }} · Unconfirmed: {{ balance_unconfirmed_fjar }}</p>
+          <form method="get" class="tx-search-form">
+            <input type="hidden" name="lang" value="{{ lang }}">
+            <input type="hidden" name="tab" value="transactions">
+            <input class="field-input tx-search-input" type="text" name="txid" value="{{ tx_query|default:'' }}" placeholder="{% if request.GET.lang == 'is' %}Leita eftir txid...{% else %}Search by txid...{% endif %}">
+            <button class="btn btn-ghost tx-search-btn" type="submit">{% if request.GET.lang == 'is' %}Leita{% else %}Search{% endif %}</button>
+          </form>
+
+          <div data-live-transactions-wrap>
+          {% if tx_chain %}
+            <div class="address-list">
+              {% for tx in tx_chain %}
+                <div class="address-row tx-row">
+                  {% if tx.direction == 'sent' %}
+                    <span class="tx-dir tx-dir-sent tx-dir-badge" aria-hidden="true">
+                      <svg class="tx-dir-icon" viewBox="0 0 24 24" focusable="false">
+                        <path d="M5 19L19 5M10 5h9v9"></path>
+                      </svg>
+                    </span>
+                  {% else %}
+                    <span class="tx-dir tx-dir-received tx-dir-badge" aria-hidden="true">
+                      <svg class="tx-dir-icon" viewBox="0 0 24 24" focusable="false">
+                        <path d="M19 5L5 19M5 10v9h9"></path>
+                      </svg>
+                    </span>
+                  {% endif %}
+                  <div class="tx-main">
+                    <span class="address-index">
+                      {{ tx.status }} · {% if tx.direction == 'sent' %}{{ labels.tx_sent }}{% else %}{{ labels.tx_received }}{% endif %}{% if tx.height > 0 %} · height <a class="tx-block-link" href="https://mempool.fjarcode.com/block/{{ tx.height }}" target="_blank" rel="noopener noreferrer">{{ tx.height }}</a>{% endif %}
+                      {% if tx.timestamp %} · {{ tx.timestamp|date:"d-m-Y H:i:s" }} UTC{% endif %}
+                    </span>
+                    <span class="address-value">
+                      {% if tx.direction == 'sent' %}
+                        {{ labels.tx_sent }}: {{ tx.sent_amount_fjar }} FJAR
+                      {% else %}
+                        {{ labels.tx_received }}: {{ tx.amount_fjar }} FJAR
+                      {% endif %}
+                      {% if tx.is_coinbase and tx.direction != 'sent' %}
+                        {% if tx.confirmations < coinbase_maturity_confirmations %}
+                          <span class="tx-immature"> · <span class="tx-block-found">BLOCK FOUND</span> · IMMATURE ({{ tx.confirmations }}/{{ coinbase_maturity_confirmations }})</span>
+                        {% else %}
+                          · <span class="tx-block-found">BLOCK FOUND</span>
+                        {% endif %}
+                      {% endif %}
+                    </span>
+                    <a class="address-value tx-hash" href="https://mempool.fjarcode.com/tx/{{ tx.tx_hash }}" target="_blank" rel="noopener noreferrer">{{ tx.tx_hash }}</a>
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          {% elif tx_log %}
+            <div class="address-list">
+              {% for tx in tx_log %}
+                <div class="address-row">
+                  <span class="address-index">{{ tx.timestamp }}</span>
+                  {% if tx.txid %}
+                    {% if tx.txid_source == 'electrum' %}
+                      <a class="address-value tx-hash" href="https://mempool.fjarcode.com/tx/{{ tx.txid }}" target="_blank" rel="noopener noreferrer">txid: {{ tx.txid }}</a>
+                    {% else %}
+                      <span class="address-value">txid: {{ tx.txid }} (local)</span>
+                    {% endif %}
+                  {% endif %}
+                  <span class="address-value">to: {{ tx.to }}</span>
+                  <span class="address-value">amount: {{ tx.amount }} FJAR · fee: {{ tx.fee|default:'0' }} FJAR ({{ tx.fee_label|default:tx.fee_level|default:'Medium' }}) · {{ tx.status }}</span>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            {% if tx_query %}
+              <p class="sub">{% if request.GET.lang == 'is' %}Engar færslur fundust fyrir txid leit.{% else %}No transactions matched your txid search.{% endif %}</p>
+            {% else %}
+              <p class="sub">{{ labels.tx_none }}</p>
+            {% endif %}
+          {% endif %}
+
+          {% if transactions_page_obj and transactions_page_obj.paginator.num_pages > 1 %}
+            <nav class="tx-pagination" aria-label="Transactions pages">
+              {% if transactions_page_obj.has_previous %}
+                <a class="tx-page-link" href="?lang={{ lang }}&tab=transactions{% if tx_query %}&txid={{ tx_query|urlencode }}{% endif %}&tx_page={{ transactions_page_obj.previous_page_number }}">{% if request.GET.lang == 'is' %}Fyrri{% else %}Prev{% endif %}</a>
+              {% endif %}
+              {% for num in transactions_page_obj.paginator.page_range %}
+                <a class="tx-page-link {% if transactions_page_obj.number == num %}is-active{% endif %}" href="?lang={{ lang }}&tab=transactions{% if tx_query %}&txid={{ tx_query|urlencode }}{% endif %}&tx_page={{ num }}">{{ num }}</a>
+              {% endfor %}
+              {% if transactions_page_obj.has_next %}
+                <a class="tx-page-link" href="?lang={{ lang }}&tab=transactions{% if tx_query %}&txid={{ tx_query|urlencode }}{% endif %}&tx_page={{ transactions_page_obj.next_page_number }}">{% if request.GET.lang == 'is' %}Næsta{% else %}Next{% endif %}</a>
+              {% endif %}
+            </nav>
+          {% endif %}
+          </div>
+        {% elif tab == 'addresses' %}
+          <h1>{{ labels.addresses }}</h1>
+          {% if addresses %}
+            <div class="address-list">
+              {% for item in addresses %}
+                <div class="address-row">
+                  <span class="address-index">#{{ item.index }}</span>
+                  <span class="address-value copyable" data-copy-text="{{ item.address }}" title="Click to copy address">{{ item.address }}</span>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <p class="sub">No addresses available.</p>
+          {% endif %}
+        {% endif %}
+      {% endif %}
+  </section>
+
+{% endblock %}

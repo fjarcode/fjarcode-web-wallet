@@ -1,0 +1,36 @@
+from django.urls import path
+from wallet.views import (
+    create_wallet,
+    create_wallet_continue,
+    disconnect_wallet,
+    electrum_connected_api,
+    index,
+    logout_wallet,
+    passkey_auth_begin,
+    passkey_auth_finish,
+    passkey_register_begin,
+    passkey_register_finish,
+    recover_wallet,
+    settings_page,
+    status,
+    unlock_wallet,
+    wallet_home,
+)
+
+urlpatterns = [
+    path('', index, name='index'),
+    path('create/', create_wallet, name='create_wallet'),
+    path('create/continue/', create_wallet_continue, name='create_wallet_continue'),
+    path('recover/', recover_wallet, name='recover_wallet'),
+    path('unlock/', unlock_wallet, name='unlock_wallet'),
+    path('wallet/', wallet_home, name='wallet_home'),
+    path('settings/', settings_page, name='settings_page'),
+    path('status/', status, name='status'),
+    path('api/electrum-connected/', electrum_connected_api, name='electrum_connected_api'),
+    path('passkey/register/begin/', passkey_register_begin, name='passkey_register_begin'),
+    path('passkey/register/finish/', passkey_register_finish, name='passkey_register_finish'),
+    path('passkey/auth/begin/', passkey_auth_begin, name='passkey_auth_begin'),
+    path('passkey/auth/finish/', passkey_auth_finish, name='passkey_auth_finish'),
+    path('logout/', logout_wallet, name='logout_wallet'),
+    path('disconnect/', disconnect_wallet, name='disconnect_wallet'),
+]

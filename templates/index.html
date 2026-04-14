@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+
+{% block title %}FJARCODE Wallet{% endblock %}
+{% block description %}Create a new FJAR wallet or recover from seed phrase{% endblock %}
+
+{% block content %}
+  <section class="wrap">
+    <section class="card panel">
+      <h1>{{ labels.home_title }}</h1>
+      <div class="sub sub-info-row">
+        <span>{{ labels.home_sub }}</span>
+        <button type="button" class="info-trigger" data-home-info-open>{{ labels.home_info_button }}</button>
+      </div>
+      <div class="actions">
+        <a class="btn btn-primary" href="/create/?lang={{ lang }}&autocreate=1">{{ labels.create }}</a>
+        <a class="btn btn-ghost" href="/recover/?lang={{ lang }}">{{ labels.recover }}</a>
+      </div>
+    </section>
+  </section>
+
+  <div class="confirm-modal wallet-info-modal" data-home-info-modal hidden>
+    <div class="confirm-modal__backdrop" data-home-info-close></div>
+    <section class="confirm-modal__card wallet-info-card" role="dialog" aria-modal="true" aria-labelledby="home-info-title">
+      <h2 id="home-info-title" class="confirm-modal__title">{{ labels.home_info_title }}</h2>
+      <p class="confirm-modal__text">{{ labels.home_info_intro }}</p>
+      <ul class="info-list">
+        <li>{{ labels.home_info_seed }}</li>
+        <li>{{ labels.home_info_loss }}</li>
+        <li>{{ labels.home_info_device }}</li>
+      </ul>
+      <p class="note info-source-line">
+        {{ labels.home_info_open_source }}
+        <a class="info-source-link" href="https://github.com/fjarcode/fjarcode-web-wallet" target="_blank" rel="noopener noreferrer">{{ labels.home_info_repo_label }}</a>
+      </p>
+      <div class="confirm-modal__actions single-col">
+        <button type="button" class="top-link top-logout confirm-modal__btn is-danger" data-home-info-close>{{ labels.home_info_continue }}</button>
+      </div>
+    </section>
+  </div>
+{% endblock %}

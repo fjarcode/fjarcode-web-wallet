@@ -38,6 +38,7 @@ class ElectrumClient:
             if use_ssl:
                 context = ssl.create_default_context()
                 conn = context.wrap_socket(sock, server_hostname=host)
+            conn.settimeout(self.timeout)
 
             payload = {
                 'id': self._next_id(),
@@ -75,6 +76,9 @@ class ElectrumClient:
     def call(self, method, params=None):
         if params is None:
             params = []
+
+        if not self.servers:
+            raise ElectrumConnectionError('No Electrum servers configured.')
 
         last_error = None
         for server in self.servers:

@@ -157,6 +157,6 @@ def _parse_electrum_servers(raw_servers):
     return parsed
 
 
-_default_electrum = 'electrumx03.fjarcode.com:50001:t,electrumx01.fjarcode.com:50002:s,electrumx02.fjarcode.com:50002:s'
+_default_electrum = '127.0.0.1:50001:t,electrumx01.fjarcode.com:50002:s,electrumx02.fjarcode.com:50002:s,electrumx03.fjarcode.com:50001:t'
 ELECTRUM_SERVERS = _parse_electrum_servers(os.getenv('ELECTRUM_SERVERS', _default_electrum))
-ELECTRUM_TIMEOUT_SECONDS = int(os.getenv('ELECTRUM_TIMEOUT_SECONDS', '8'))
+ELECTRUM_TIMEOUT_SECONDS = int(os.getenv('ELECTRUM_TIMEOUT_SECONDS', '5'))

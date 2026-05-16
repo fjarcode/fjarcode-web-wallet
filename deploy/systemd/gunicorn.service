@@ -9,6 +9,7 @@ WorkingDirectory=/root/fjar_wallet
 EnvironmentFile=/etc/default/fjar_wallet
 ExecStart=/root/fjar_wallet/.venv/bin/gunicorn \
     --workers 1 \
+    --timeout 90 \
     --bind 0.0.0.0:8080 \
     config.wsgi:application
 Restart=always

@@ -797,6 +797,7 @@ def wallet_home(request):
 	valid_tabs = {'wallet', 'send', 'receive', 'transactions', 'addresses'}
 	if tab not in valid_tabs:
 		tab = 'wallet'
+	needs_chain_history = tab in {'wallet', 'transactions'}
 
 	context.update(
 		{
@@ -844,7 +845,7 @@ def wallet_home(request):
 			for item in addresses:
 				addr = item['address']
 				addr_balance = client.get_balance_for_cashaddr(addr)
-				addr_history = client.get_history_for_cashaddr(addr)
+				addr_history = client.get_history_for_cashaddr(addr) if needs_chain_history else []
 				address_entries.append(
 					{
 						'index': item['index'],
@@ -859,7 +860,8 @@ def wallet_home(request):
 				'confirmed': sum(e['confirmed'] for e in address_entries),
 				'unconfirmed': sum(e['unconfirmed'] for e in address_entries),
 			}
-			context['tx_chain'] = _merge_address_histories(address_entries)
+			if needs_chain_history:
+				context['tx_chain'] = _merge_address_histories(address_entries)
 			context['electrum_online'] = True
 		except (ElectrumConnectionError, InvalidAddress, OSError, ValueError):
 			context['electrum_online'] = False
@@ -888,7 +890,7 @@ def wallet_home(request):
 	context['balance_total_fjar'] = _format_fjar_from_sats(total_sats)
 	request.session['sidebar_balance_total_fjar'] = context['balance_total_fjar']
 	context['chain_unconfirmed_count'] = len([t for t in context['tx_chain'] if t['status'] == 'unconfirmed'])
-	if context['electrum_online']:
+	if context['electrum_online'] and needs_chain_history:
 		try:
 			_annotate_tx_direction(
 				client=client,
@@ -941,30 +943,12 @@ def wallet_home(request):
 	address_spendable_rows = []
 	for entry in address_entries:
 		received_total_sats = sum(int(tx.get('amount_sats', 0) or 0) for tx in entry.get('history', []))
-		spendable_confirmed = 0
-		if context['electrum_online']:
-			try:
-				spendable_utxos = client.list_unspent_for_cashaddr(
-					entry['address'],
-					min_confirmations=1,
-					exclude_immature_coinbase=True,
-					coinbase_maturity_confirmations=COINBASE_MATURITY_CONFIRMATIONS,
-				)
-				spendable_confirmed = sum(int(utxo.get('value', 0) or 0) for utxo in spendable_utxos)
-			except Exception:  # noqa: BLE001
-				entry_immature = sum(
-					int(tx.get('amount_sats', 0) or 0)
-					for tx in entry.get('history', [])
-					if tx.get('is_coinbase') and int(tx.get('confirmations', 0) or 0) < COINBASE_MATURITY_CONFIRMATIONS
-				)
-				spendable_confirmed = max(int(entry['confirmed']) - entry_immature, 0)
-		else:
-			entry_immature = sum(
-				int(tx.get('amount_sats', 0) or 0)
-				for tx in entry.get('history', [])
-				if tx.get('is_coinbase') and int(tx.get('confirmations', 0) or 0) < COINBASE_MATURITY_CONFIRMATIONS
-			)
-			spendable_confirmed = max(int(entry['confirmed']) - entry_immature, 0)
+		entry_immature = sum(
+			int(tx.get('amount_sats', 0) or 0)
+			for tx in entry.get('history', [])
+			if tx.get('is_coinbase') and int(tx.get('confirmations', 0) or 0) < COINBASE_MATURITY_CONFIRMATIONS
+		)
+		spendable_confirmed = max(int(entry['confirmed']) - entry_immature, 0)
 		address_spendable_rows.append(
 			{
 				'index': entry['index'],

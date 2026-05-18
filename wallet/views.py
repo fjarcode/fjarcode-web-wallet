@@ -1109,6 +1109,7 @@ def wallet_home(request):
 			candidate_sources = [selected_source] if selected_source else []
 		else:
 			candidate_sources = [s for s in address_spendable_rows if s['spendable_confirmed_sats'] > 0]
+			candidate_sources = candidate_sources[: settings.WALLET_SEND_PREVIEW_MAX_SOURCE_CANDIDATES]
 
 		for source in candidate_sources:
 			if not source:
@@ -1130,7 +1131,7 @@ def wallet_home(request):
 
 		if not preview or not selected_source:
 			auto_max_result = None
-			if selected_source_address and selected_source:
+			if settings.WALLET_SEND_ENABLE_AUTO_MAX_FALLBACK and selected_source_address and selected_source:
 				auto_max_result = _find_max_sendable_for_source(
 					seed_phrase=seed_phrase,
 					source_address=selected_source['address'],

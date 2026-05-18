@@ -40,7 +40,11 @@ def prepare_send_preview(seed_phrase, from_fjar_address, to_fjar_address, amount
         material = _resolve_signing_material(seed_phrase, from_fjar_address)
 
         client = ElectrumClient()
-        utxos = client.list_unspent_for_cashaddr(from_fjar_address)
+        utxos = client.list_unspent_for_cashaddr(
+            from_fjar_address,
+            min_confirmations=1,
+            exclude_immature_coinbase=False,
+        )
         if not utxos:
             raise WalletSendError('No spendable UTXOs found for source address.')
 

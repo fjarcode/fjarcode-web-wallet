@@ -21,6 +21,10 @@ class ElectrumClient:
     def __init__(self, servers=None, timeout=None):
         self.servers = servers or settings.ELECTRUM_SERVERS
         self.timeout = timeout or settings.ELECTRUM_TIMEOUT_SECONDS
+        self.max_servers_per_call = max(int(getattr(settings, 'ELECTRUM_MAX_SERVERS_PER_CALL', 2) or 2), 1)
+        self.history_max_txs_per_address = max(int(getattr(settings, 'ELECTRUM_HISTORY_MAX_TXS_PER_ADDRESS', 20) or 20), 1)
+        self.history_verbose_limit_per_address = max(int(getattr(settings, 'ELECTRUM_HISTORY_VERBOSE_LIMIT_PER_ADDRESS', 8) or 8), 0)
+        self._chain_height_cache = None
         self._request_id = 0
 
     def _next_id(self):
@@ -81,7 +85,7 @@ class ElectrumClient:
             raise ElectrumConnectionError('No Electrum servers configured.')
 
         last_error = None
-        for server in self.servers:
+        for server in self.servers[:self.max_servers_per_call]:
             try:
                 return self._call_on_server(server, method, params)
             except (OSError, ssl.SSLError, ValueError, json.JSONDecodeError, ElectrumConnectionError) as exc:
@@ -156,11 +160,14 @@ class ElectrumClient:
             return None
 
     def _get_chain_height(self):
+        if self._chain_height_cache is not None:
+            return self._chain_height_cache
         try:
             payload = self.call('blockchain.headers.subscribe', [])
-            return int((payload or {}).get('height', 0))
+            self._chain_height_cache = int((payload or {}).get('height', 0))
         except Exception:  # noqa: BLE001
-            return 0
+            self._chain_height_cache = 0
+        return self._chain_height_cache
 
     def get_balance_for_cashaddr(self, cashaddr):
         scripthash = self._cashaddr_to_scripthash(cashaddr)
@@ -174,6 +181,8 @@ class ElectrumClient:
         scripthash = self._cashaddr_to_scripthash(cashaddr)
         target_script = self._cashaddr_to_scriptpubkey_hex(cashaddr)
         result = self.call('blockchain.scripthash.get_history', [scripthash])
+        result = sorted(result or [], key=lambda item: int(item.get('height', 0) or 0), reverse=True)
+        result = result[:self.history_max_txs_per_address]
         chain_height = self._get_chain_height()
 
         if chain_height <= 0:
@@ -181,7 +190,7 @@ class ElectrumClient:
             chain_height = max(confirmed_heights) if confirmed_heights else 0
 
         history = []
-        for item in result or []:
+        for index, item in enumerate(result or []):
             height = int(item.get('height', 0))
             tx_hash = item.get('tx_hash', '')
             confirmations = (chain_height - height + 1) if (height > 0 and chain_height >= height) else 0
@@ -189,21 +198,22 @@ class ElectrumClient:
             amount_sats = 0
             tx_time = None
             is_coinbase = False
-            try:
-                verbose_tx = self.call('blockchain.transaction.get', [tx_hash, True])
-                tx_time = self._normalize_timestamp(verbose_tx.get('blocktime') or verbose_tx.get('time'))
+            if index < self.history_verbose_limit_per_address:
+                try:
+                    verbose_tx = self.call('blockchain.transaction.get', [tx_hash, True])
+                    tx_time = self._normalize_timestamp(verbose_tx.get('blocktime') or verbose_tx.get('time'))
 
-                for vin in verbose_tx.get('vin', []) or []:
-                    if isinstance(vin, dict) and vin.get('coinbase'):
-                        is_coinbase = True
-                        break
+                    for vin in verbose_tx.get('vin', []) or []:
+                        if isinstance(vin, dict) and vin.get('coinbase'):
+                            is_coinbase = True
+                            break
 
-                for out in verbose_tx.get('vout', []) or []:
-                    script = ((out.get('scriptPubKey') or {}).get('hex') or '').lower()
-                    if script == target_script:
-                        amount_sats += self._to_sats_from_bch_value(out.get('value', 0))
-            except Exception:  # noqa: BLE001
-                tx_time = None
+                    for out in verbose_tx.get('vout', []) or []:
+                        script = ((out.get('scriptPubKey') or {}).get('hex') or '').lower()
+                        if script == target_script:
+                            amount_sats += self._to_sats_from_bch_value(out.get('value', 0))
+                except Exception:  # noqa: BLE001
+                    tx_time = None
 
             if tx_time is None and height > 0:
                 tx_time = self._timestamp_from_block_header(height)

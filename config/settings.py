@@ -160,3 +160,8 @@ def _parse_electrum_servers(raw_servers):
 _default_electrum = '127.0.0.1:50001:t,electrumx01.fjarcode.com:50002:s,electrumx02.fjarcode.com:50002:s,electrumx03.fjarcode.com:50001:t'
 ELECTRUM_SERVERS = _parse_electrum_servers(os.getenv('ELECTRUM_SERVERS', _default_electrum))
 ELECTRUM_TIMEOUT_SECONDS = int(os.getenv('ELECTRUM_TIMEOUT_SECONDS', '5'))
+ELECTRUM_MAX_SERVERS_PER_CALL = int(os.getenv('ELECTRUM_MAX_SERVERS_PER_CALL', '2'))
+ELECTRUM_HISTORY_MAX_TXS_PER_ADDRESS = int(os.getenv('ELECTRUM_HISTORY_MAX_TXS_PER_ADDRESS', '20'))
+ELECTRUM_HISTORY_VERBOSE_LIMIT_PER_ADDRESS = int(os.getenv('ELECTRUM_HISTORY_VERBOSE_LIMIT_PER_ADDRESS', '8'))
+WALLET_SEND_PREVIEW_MAX_SOURCE_CANDIDATES = int(os.getenv('WALLET_SEND_PREVIEW_MAX_SOURCE_CANDIDATES', '3'))
+WALLET_SEND_ENABLE_AUTO_MAX_FALLBACK = os.getenv('WALLET_SEND_ENABLE_AUTO_MAX_FALLBACK', 'False').lower() == 'true'
